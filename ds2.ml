@@ -12,7 +12,7 @@ type dirsig = (string * cksum)
  * Initially made for debugging
  *)
 
-(*let rec _print_file_tree depth node = 
+let rec _print_file_tree depth node = 
   for i = 0 to depth do print_char ' ' done;
   match node with
   | File (name, stat) -> printf "file: %s\n" name
@@ -21,7 +21,7 @@ type dirsig = (string * cksum)
       List.iter (_print_file_tree (succ depth)) nodes end
   | Inaccessible _ -> ()
 
-let print_file_tree = _print_file_tree 0*)
+let print_file_tree tree = _print_file_tree 0 tree; tree
 
 let empty_cksum = {acc_size = 0; dirs = 0; files = 0}
 
@@ -103,9 +103,9 @@ let print_dirsig (name, cksum) =
   printf "[%s] %s\n" (cksum_of_string cksum) name
 
 let is_significant_dir s = 
-  (snd s).acc_size > 1024*10 &&
-  ((snd s).files > 10 ||
-  (snd s).dirs > 10)
+  (snd s).acc_size > 1024*10 ||
+  (snd s).files > 10 ||
+  (snd s).dirs > 10
 
 let find_duplicates needle haystack =
   let contains_needle straw = ((snd straw) = (snd needle)) in
@@ -144,7 +144,12 @@ let read_all_dirsigs path : dirsig list =
   |> List.sort by_path_length
 
 let _ = 
-  let dirsigs = read_all_dirsigs Sys.argv.(1) in
+  let dirsigs = 
+    try
+      read_all_dirsigs Sys.argv.(1)
+    with Invalid_argument _ -> 
+      []
+  in
   let by_dir_size a b = 
     compare (snd @@ List.hd a).acc_size 
             (snd @@ List.hd b).acc_size
